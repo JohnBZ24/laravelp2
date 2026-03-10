@@ -12,12 +12,14 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class UsersTable
 {
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('roles'))
             ->columns([
                 TextColumn::make('id')
                     ->label('ID')
@@ -29,6 +31,11 @@ class UsersTable
                 TextColumn::make('email')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('roles.name')
+                    ->label('Role')
+                    ->badge()
+                    ->separator(',')
+                    ->sortable(false),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable(),
@@ -66,12 +73,12 @@ class UsersTable
             ->defaultSort('id', 'desc')
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()->visible(fn (): bool => Auth::user()?->can('users.update') ?? false),
+                DeleteAction::make()->visible(fn (): bool => Auth::user()?->can('users.delete') ?? false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()->visible(fn (): bool => Auth::user()?->can('users.delete') ?? false),
                 ]),
             ])
             ->paginated([10, 25, 50, 100])

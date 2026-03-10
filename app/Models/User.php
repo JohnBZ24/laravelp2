@@ -6,16 +6,18 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+
+    protected string $guard_name = 'web';
 
     /**
      * The attributes that are mass assignable.
@@ -56,11 +58,6 @@ class User extends Authenticatable implements FilamentUser
         return true;
     }
 
-    public function roles(): BelongsToMany
-    {
-        return $this->belongsToMany(Role::class);
-    }
-
     public function conversations(): HasMany
     {
         return $this->hasMany(Conversation::class);
@@ -71,13 +68,8 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(AiRun::class);
     }
 
-    public function hasRole(string $role): bool
-    {
-        return $this->roles()->where('name', $role)->exists();
-    }
-
     public function hasPermission(string $permission): bool
     {
-        return $this->roles()->whereHas('permissions', fn ($query) => $query->where('name', $permission))->exists();
+        return $this->can($permission);
     }
 }
